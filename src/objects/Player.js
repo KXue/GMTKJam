@@ -3,7 +3,9 @@ class Player extends Phaser.Sprite{
 	constructor(game, x, y, key, frame){
     super(game, x, y, key, frame);
 
-    this.anchor.set(0.5);
+    game.physics.p2.enable(this);
+    this.body.clearShapes();
+    this.body.addCircle(this.width * 0.5);
 
     this.m_minImpulse = 5;
     this.m_maxImpulse = 10;
@@ -11,12 +13,15 @@ class Player extends Phaser.Sprite{
     this.m_maxBombs = 3;
     this.m_numBombs = 3;
 
-    this.m_bombTime = 1000;
+    this.m_bombTime = 1.0;
     this.m_timeCharged = 0;
+    this.chargeBomb(0.1);
+
 	}
 
-  update(deltaTime){
-    chargeBomb(deltaTime);
+  updateWithTime(deltaTime){
+    this.chargeBomb(deltaTime);
+    this.body.angle = Math.atan2(this.body.velocity.y, this.body.velocity.x) * (180 / Math.PI);
   }
 
   replenishBombs(){
@@ -24,13 +29,13 @@ class Player extends Phaser.Sprite{
   }
 
   useBomb(x, y){
-    if(m_numBombs > 0){
-      m_numBombs--;
+    if(this.m_numBombs > 0){
+      this.m_numBombs--;
     }
   }
 
   chargeBomb(deltaTime){
-    this.m_timeCharged += this.deltaTime;
+    this.m_timeCharged += deltaTime;
 
     if (this.m_timeCharged >= this.m_bombTime){
       if(this.m_numBombs != this.m_maxBombs){
@@ -41,7 +46,6 @@ class Player extends Phaser.Sprite{
       }
     }
   }
-
 }
 
 export default Player;

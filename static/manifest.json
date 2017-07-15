@@ -1,6 +1,6 @@
 {
-  "name": "Your Game",
-  "short_name": "Your Game",
+  "name": "SLED",
+  "short_name": "SLED",
   "start_url": "index.html",
   "display": "standalone",
   "orientation": "landscape",
