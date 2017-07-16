@@ -5,7 +5,8 @@ class Preload extends Phaser.State {
 		//this.game.load.image('myImage', 'assets/my-image.png');
 		//this.game.load.audio('myAudio', 'assets/my-audio.wav');
 		//this.game.load.atlas('myAtlas', 'assets/my-atlas.png', 'assets/my-atlas.json');
-    this.game.load.image('ship', 'assets/ship.png')
+    this.game.load.spritesheet('ship', 'assets/ship.png', 64, 64, 2);
+    this.game.load.image('enemy', 'assets/popo.png');
 	}
 
 	create() {

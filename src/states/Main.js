@@ -1,20 +1,24 @@
 import Player from 'objects/Player';
 import Explosion from 'objects/Explosion';
+import Enemy from 'objects/Enemy';
 
 class Main extends Phaser.State {
 	create() {
     this.MINEXPLOSIONDIAMETER = 30;
     this.MAXEXPLOSIONDIAMETER = 200;
-    this.IMPULSEMAGNITUDE = 20;
+    this.IMPULSEMAGNITUDE = 60;
     this.timeSlowFactor = 3.5;
 
 		//Enable Physics
 		this.physics.startSystem(Phaser.Physics.P2JS);
     this.physics.p2.setImpactEvents(true);
-    this.physics.p2.restitution = 0.8;
+    this.physics.p2.restitution = 0.75;
 
 		//Set the games background colour
-		this.stage.backgroundColor = '#F5F1DE';
+    //midnight blue: 191970;
+    //beige: F5F1DE
+    //sky blue: 87CEEB
+		this.stage.backgroundColor = '#87CEEB';
 
     this.playerGroup = this.physics.p2.createCollisionGroup();
     this.explosionGroup = this.physics.p2.createCollisionGroup();
@@ -22,11 +26,18 @@ class Main extends Phaser.State {
     this.asteroidGroup = this.physics.p2.createCollisionGroup();
 
     this.physics.p2.updateBoundsCollisionGroup();
+    this.physics.p2.useElapsedTime = true;
+    this.physics.p2.setPostBroadphaseCallback(this.checkExplosion, this);
 
-    this.player = new Player(this, 200, 200, 'ship');
+    this.player = new Player(this, 200, 200, 'ship', 0);
     this.player.body.setCollisionGroup(this.playerGroup);
-    this.player.body.collides(this.explosionGroup);
+    this.player.body.collides([this.explosionGroup, this.enemyGroup]);
     this.add.existing(this.player);
+
+    this.enemy = new Enemy(this, 500, 500, 'enemy');
+    this.enemy.body.setCollisionGroup(this.enemyGroup);
+    this.enemy.body.collides([this.explosionGroup, this.playerGroup])
+    this.add.existing(this.enemy);
 
     this.input.maxPointers = 1;
     this.input.onDown.add(this.justPressed, this);
@@ -36,13 +47,17 @@ class Main extends Phaser.State {
     this.graphics.lineStyle(5, 0xffffff, 1);
     this.graphics.fixedToCamera = true;
 
-    this.physics.p2.setPostBroadphaseCallback(this.checkExplosion, this);
+    this.boundingBoxGraphics = this.add.graphics();
+    this.boundingBoxGraphics.lineStyle(10, 0x000000, 1);
+    this.boundingBoxGraphics.fixedToCamera = true;
+    this.boundingBoxGraphics.drawRect(0, 0, this.camera.width, this.camera.height);
 
     this.pointDown = false;
 	}
 
 	update() {
     this.player.updateWithTime(this.time.physicsElapsed);
+    this.enemy.updateTowards(this.player.x, this.player.y);
     if(this.pointDown){
 
       this.graphics.clear();
@@ -62,7 +77,6 @@ class Main extends Phaser.State {
 
   justPressed(){
     this.pointDown = true;
-    this.MINEXPLOSIONDIAMETER = 30;
     this.slowTween = this.add.tween(this.time).to({slowMotion: this.timeSlowFactor}, 200, "Sine.easeOut", true);
     this.explosionUI = new Phaser.Circle(this.input.x, this.input.y, this.MINEXPLOSIONDIAMETER);
     this.graphics.drawCircle(this.explosionUI.x, this.explosionUI.y, this.explosionUI.diameter);
@@ -88,14 +102,19 @@ class Main extends Phaser.State {
     const spawnY = this.camera.y + circle.y;
     const explosion = this.add.existing(new Explosion(this, circle));
     explosion.body.setCollisionGroup(this.explosionGroup);
-    explosion.body.collides(this.playerGroup);
+    explosion.body.collides([this.playerGroup, this.enemyGroup]);
   }
 
-  hitExplosion(body1, body2){
-    const distanceRatio = this.IMPULSEMAGNITUDE / this.math.distance(body1.x, body1.y, body2.x, body2.y);
-    const xDistance = body1.x - body2.x;
-    const yDistance = body1.y - body2.y;
-    body2.applyImpulse([xDistance * distanceRatio, yDistance * distanceRatio], 0, 0);
+  hitExplosion(explosionBody, otherBody){
+    const distanceRatio = this.IMPULSEMAGNITUDE / this.math.distance(explosionBody.x, explosionBody.y, otherBody.x, otherBody.y);
+    const xDistance = explosionBody.x - otherBody.x;
+    const yDistance = explosionBody.y - otherBody.y;
+    this.pauseBriefly(100);
+    this.camera.shake(0.01, 100, false, Phaser.Camera.SHAKE_HORIZONTAL);
+    otherBody.applyImpulse([xDistance * distanceRatio, yDistance * distanceRatio], 0, 0);
+    if(otherBody.sprite instanceof Player){
+      otherBody.sprite.setExplosion();
+    }
   }
 
   checkExplosion(body1, body2){
@@ -103,6 +122,7 @@ class Main extends Phaser.State {
     let retVal = true;
     if(body1.static || body2.static){
       explosionBody = body1.static? body1 : body2;
+      explosionBody.removeNextStep = true;
       otherBody = body1.static? body2 : body1;
       // if(otherBody.sprite instanceof Asteroid){
       //   //asteroid check here
@@ -113,6 +133,16 @@ class Main extends Phaser.State {
       retVal = false;
     }
     return retVal;
+  }
+
+  pauseBriefly(time){
+    if(!time || isNaN(time) || !isFinite(time)){
+      time = 50;
+    }
+    if(!this.physics.p2.paused){
+      this.physics.p2.pause();
+      this.time.events.add(time, this.physics.p2.resume, this.physics.p2);
+    }
   }
 //  var circ = new Phaser.Circle(body.center.x, body.center.y, body.halfWidth);
 
