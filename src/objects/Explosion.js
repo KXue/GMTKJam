@@ -8,6 +8,10 @@ class Explosion extends Phaser.Graphics{
     game.physics.p2.enable(this);
     this.body.clearShapes();
     this.body.addCircle(circle.diameter * 0.5);
+    this.body.dynamic = false;
+    this.body.kinematic = false;
+    this.body.static = true;
+    this.body.motionState = Phaser.Physics.P2.Body.STATIC;
     let tween = this.game.add.tween(this).to({thicc: 0, diameter: circle.diameter}, 200, "Bounce.easeInOut", true);
     tween.onComplete.add(()=>{
       this.pendingDestroy = true;

@@ -5,16 +5,27 @@ class Main extends Phaser.State {
 	create() {
     this.MINEXPLOSIONDIAMETER = 30;
     this.MAXEXPLOSIONDIAMETER = 200;
+    this.IMPULSEMAGNITUDE = 20;
     this.timeSlowFactor = 3.5;
 
 		//Enable Physics
 		this.physics.startSystem(Phaser.Physics.P2JS);
+    this.physics.p2.setImpactEvents(true);
     this.physics.p2.restitution = 0.8;
 
 		//Set the games background colour
-		this.stage.backgroundColor = '#cecece';
+		this.stage.backgroundColor = '#F5F1DE';
+
+    this.playerGroup = this.physics.p2.createCollisionGroup();
+    this.explosionGroup = this.physics.p2.createCollisionGroup();
+    this.enemyGroup = this.physics.p2.createCollisionGroup();
+    this.asteroidGroup = this.physics.p2.createCollisionGroup();
+
+    this.physics.p2.updateBoundsCollisionGroup();
 
     this.player = new Player(this, 200, 200, 'ship');
+    this.player.body.setCollisionGroup(this.playerGroup);
+    this.player.body.collides(this.explosionGroup);
     this.add.existing(this.player);
 
     this.input.maxPointers = 1;
@@ -25,6 +36,7 @@ class Main extends Phaser.State {
     this.graphics.lineStyle(5, 0xffffff, 1);
     this.graphics.fixedToCamera = true;
 
+    this.physics.p2.setPostBroadphaseCallback(this.checkExplosion, this);
 
     this.pointDown = false;
 	}
@@ -49,8 +61,6 @@ class Main extends Phaser.State {
 	}
 
   justPressed(){
-    console.log("pressed");
-    console.log(this.pointDown);
     this.pointDown = true;
     this.MINEXPLOSIONDIAMETER = 30;
     this.slowTween = this.add.tween(this.time).to({slowMotion: this.timeSlowFactor}, 200, "Sine.easeOut", true);
@@ -60,12 +70,9 @@ class Main extends Phaser.State {
   }
 
   justReleased(){
-    console.log("released");
-    console.log(this.pointDown);
     if(this.pointDown){
       this.pointDown = false;
       this.time.slowMotion = 1.0;
-      console.log(this.explosionUI.x + " " + this.explosionUI.y);
       this.spawnExplosionAt(this.explosionUI);
       this.graphics.clear();
       this.graphics.lineStyle(5, 0xffffff, 1);
@@ -79,7 +86,33 @@ class Main extends Phaser.State {
   spawnExplosionAt(circle){
     const spawnX = this.camera.x + circle.x;
     const spawnY = this.camera.y + circle.y;
-    this.add.existing(new Explosion(this, circle));
+    const explosion = this.add.existing(new Explosion(this, circle));
+    explosion.body.setCollisionGroup(this.explosionGroup);
+    explosion.body.collides(this.playerGroup);
+  }
+
+  hitExplosion(body1, body2){
+    const distanceRatio = this.IMPULSEMAGNITUDE / this.math.distance(body1.x, body1.y, body2.x, body2.y);
+    const xDistance = body1.x - body2.x;
+    const yDistance = body1.y - body2.y;
+    body2.applyImpulse([xDistance * distanceRatio, yDistance * distanceRatio], 0, 0);
+  }
+
+  checkExplosion(body1, body2){
+    let explosionBody, otherBody;
+    let retVal = true;
+    if(body1.static || body2.static){
+      explosionBody = body1.static? body1 : body2;
+      otherBody = body1.static? body2 : body1;
+      // if(otherBody.sprite instanceof Asteroid){
+      //   //asteroid check here
+      // }
+      // else{
+      this.hitExplosion(explosionBody, otherBody);
+      // }
+      retVal = false;
+    }
+    return retVal;
   }
 //  var circ = new Phaser.Circle(body.center.x, body.center.y, body.halfWidth);
 
