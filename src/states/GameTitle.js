@@ -1,7 +1,7 @@
 class GameTitle extends Phaser.State {
 
 	create() {
-
+    this.startGame();
 	}
 
 	startGame() {

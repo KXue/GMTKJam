@@ -1,24 +1,21 @@
 class Player extends Phaser.Sprite{
 
-	constructor(game, x, y, key, frame){
-    super(game, x, y, key, frame);
-
-    game.physics.p2.enable(this);
-    this.body.clearShapes();
-    this.body.addCircle(this.width * 0.5);
-    this.body.damping = 0.1;
-
+  create(){
     this.m_maxBombs = 3;
     this.m_numBombs = 3;
 
     this.m_bombTime = 2.0;
     this.m_timeCharged = 0;
 
-    this.isAsploded = false;
-    this.vincibleVelocitySquare = 200 * 200;
-	}
+    this.numKills = 0;
+    this.numCombo = 0;
 
-  updateWithTime(deltaTime){
+    this.isAsploded = false;
+    this.vincibleVelocitySquare = 100 * 100;
+  }
+
+  update(){
+    const deltaTime = this.game.time.physicsElapsed;
     this.chargeBomb(deltaTime);
     this.body.angle = Math.atan2(this.body.velocity.y, this.body.velocity.x) * (180 / Math.PI);
     if(this.isAsploded && this.body.velocity.x * this.body.velocity.x + this.body.velocity.y * this.body.velocity.y < this.vincibleVelocitySquare) {
@@ -52,6 +49,7 @@ class Player extends Phaser.Sprite{
   setExplosion(){
     this.isAsploded = true;
     this.frame = 1;
+    this.numCombo = 0;
   }
 }
 

@@ -1,11 +1,9 @@
 class Explosion extends Phaser.Graphics{
-  constructor(game, circle){
-    super(game, circle.x, circle.y);
-
+  setCircle(circle){
     this.thicc = circle.diameter * 0.5;
     this.diameter = circle.diameter * 0.5;
 
-    game.physics.p2.enable(this);
+    this.game.physics.p2.enable(this);
     this.body.clearShapes();
     this.body.addCircle(circle.diameter * 0.5);
     this.body.dynamic = false;
@@ -25,4 +23,4 @@ class Explosion extends Phaser.Graphics{
   }
 }
 
-export default Explosion
+export default Explosion;
